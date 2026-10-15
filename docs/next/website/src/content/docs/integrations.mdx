@@ -1,6 +1,6 @@
 ---
 title: Integrations
-description: Install Herdr integrations for Pi, OMP, Claude Code, Codex, GitHub Copilot CLI, Devin CLI, Droid, Kimi Code CLI, OpenCode, Kilo Code CLI, Hermes Agent, Qoder CLI, Qwen Code, Letta Code, Cursor Agent CLI, MastraCode, Antigravity CLI, and Grok CLI.
+description: Install Herdr integrations for Pi, OMP, Claude Code, Codex, GitHub Copilot CLI, Devin CLI, Droid, Kimi Code CLI, OpenCode, Kilo Code CLI, Hermes Agent, Qoder CLI, Qwen Code, Letta Code, Cursor Agent CLI, MastraCode, Antigravity CLI, Grok CLI, and Bob.
 ---
 
 Herdr detects the agents it supports automatically. Install an agent's integration so Herdr can resume the same session after a server restart. Some integrations also report the agent's state directly. See [Agents](/docs/agents/) for which agents Herdr supports and which support Herdr themselves.
@@ -28,6 +28,7 @@ herdr integration install cursor
 herdr integration install mastracode
 herdr integration install antigravity-cli
 herdr integration install grok
+herdr integration install bob
 ```
 
 ## Uninstall integrations
@@ -51,6 +52,7 @@ herdr integration uninstall cursor
 herdr integration uninstall mastracode
 herdr integration uninstall antigravity-cli
 herdr integration uninstall grok
+herdr integration uninstall bob
 ```
 
 Herdr saves integration configs atomically on Linux/macOS and for new files; existing Windows files keep their permissions through a backup-first, in-place update. If Windows reports a backup, close the agent and inspect the config before retrying: discard—not restore—an unfinished `.herdr-backup.pending` only after verifying the config, or restore completed `.herdr-backup` contents into the existing file if needed (if missing, establish its intended permissions first), then verify the config and remove the backup.
@@ -61,7 +63,7 @@ Every integration tells Herdr which session the agent is in, so Herdr can resume
 
 The Pi, OMP, Kimi Code CLI, OpenCode, Kilo Code CLI, and MastraCode integrations also report the agent's state. While they report, Herdr uses them instead of reading the screen. The others leave state to screen detection.
 
-Native session restore requires current Herdr integrations: Pi integration version `2`, OMP version `3`, Claude Code version `6`, Codex version `5`, GitHub Copilot CLI version `2`, Devin CLI version `2`, Droid version `2`, Kimi Code CLI version `3`, Qoder CLI version `2`, Qwen Code version `1`, Letta Code version `1`, Cursor Agent CLI version `1`, Grok CLI version `2`, OpenCode version `5`, Kilo Code CLI version `1`, Hermes Agent version `5`, MastraCode version `1`, or Antigravity CLI version `1`. Check installed versions with `herdr integration status`.
+Native session restore requires current Herdr integrations: Pi integration version `2`, OMP version `3`, Claude Code version `6`, Codex version `5`, GitHub Copilot CLI version `2`, Devin CLI version `2`, Droid version `2`, Kimi Code CLI version `3`, Qoder CLI version `2`, Qwen Code version `1`, Letta Code version `1`, Cursor Agent CLI version `1`, Grok CLI version `2`, OpenCode version `5`, Kilo Code CLI version `1`, Hermes Agent version `5`, MastraCode version `1`, Antigravity CLI version `1`, or Bob version `1`. Check installed versions with `herdr integration status`.
 
 ## Integrate your own agent
 
@@ -114,6 +116,20 @@ The hook reports Claude Code session identity to the local Herdr socket on sessi
 Claude integration v10 matches only the documented `SessionStart` sources: `startup`, `resume`, `clear`, `compact`, and `fork`. This prevents Grok's `new` and `load` events from launching the imported Herdr Claude hook, without disabling unrelated Claude-compatible hooks. Reinstall the Claude integration after upgrading to migrate the previous wildcard matcher. New Claude source values require an integration update.
 
 Herdr uses `~/.claude` by default, or `CLAUDE_CONFIG_DIR` when set. The Claude config directory must already exist. Install writes `hooks/herdr-agent-state.sh` and updates `settings.json` with Herdr hook entries. Uninstall removes the matching hook entries and deletes the hook script.
+
+## Bob
+
+Install the Bob hook:
+
+```bash
+herdr integration install bob
+```
+
+The hook reports Bob session identity to the local Herdr socket on session start. Bob state comes from Herdr's screen manifest detection, and Herdr can resume a Bob pane with `bob --resume <session>` after a server restart.
+
+Herdr uses `~/.bob` by default, or `BOB_CONFIG_DIR` when set. The Bob config directory must already exist. Install writes `hooks/herdr-agent-state.sh` and updates `settings.json` with a Herdr `SessionStart` hook entry. Uninstall removes the matching hook entry and deletes the hook script.
+
+Bob integration installation is experimental and CLI-only. It is not listed in the Settings integration screen or the JSON integration API. `herdr integration status` reports it as `bob (experimental)`.
 
 ## Codex
 
