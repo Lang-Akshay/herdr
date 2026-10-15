@@ -164,6 +164,7 @@ pub fn is_reserved_native_state_source(source: &str, agent: &str) -> bool {
     matches!(
         (source, agent),
         ("herdr:claude", "claude")
+            | ("herdr:bob", "bob")
             | ("herdr:codex", "codex")
             | ("herdr:copilot", "copilot")
             | ("herdr:devin", "devin")
@@ -208,6 +209,9 @@ pub fn plan(source: &str, agent: &str, session_ref: &AgentSessionRef) -> Option<
                 "--resume".into(),
                 session_ref.value.clone(),
             ]
+        }
+        ("herdr:bob", "bob", AgentSessionRefKind::Id) => {
+            vec!["bob".into(), "--resume".into(), session_ref.value.clone()]
         }
         ("herdr:codex", "codex", AgentSessionRefKind::Id) => {
             vec!["codex".into(), "resume".into(), session_ref.value.clone()]
@@ -329,6 +333,7 @@ pub(crate) fn is_official_agent_source(source: &str, agent: &str) -> bool {
     matches!(
         (source, agent),
         ("herdr:claude", "claude")
+            | ("herdr:bob", "bob")
             | ("herdr:codex", "codex")
             | ("herdr:copilot", "copilot")
             | ("herdr:devin", "devin")
@@ -464,6 +469,17 @@ mod tests {
             .argv,
             vec!["claude", "--resume", "claude-session"]
         );
+        assert_eq!(
+            plan(
+                "herdr:bob",
+                "bob",
+                &AgentSessionRef::id("bob-session").unwrap()
+            )
+            .unwrap()
+            .argv,
+            vec!["bob", "--resume", "bob-session"]
+        );
+        assert!(is_reserved_native_state_source("herdr:bob", "bob"));
         assert_eq!(
             plan(
                 "herdr:codex",
