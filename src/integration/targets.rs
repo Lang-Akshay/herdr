@@ -21,9 +21,10 @@ use super::config_edit::{
 };
 use super::config_file::{check_config_targets, write_config};
 use super::env::{
-    antigravity_cli_dir, claude_dir, codex_dir, copilot_dir, cursor_dir, devin_dir, droid_dir,
-    grok_dir, hermes_dir, hermes_plugin_dir, kilo_dir, kimi_dir, letta_dir, mastracode_dir,
-    omp_extension_dir, opencode_dir, opencode_state_dir, pi_extension_dir, qodercli_dir, qwen_dir,
+    antigravity_cli_dir, bob_dir, claude_dir, codex_dir, copilot_dir, cursor_dir, devin_dir,
+    droid_dir, grok_dir, hermes_dir, hermes_plugin_dir, kilo_dir, kimi_dir, letta_dir,
+    mastracode_dir, omp_extension_dir, opencode_dir, opencode_state_dir, pi_extension_dir,
+    qodercli_dir, qwen_dir,
 };
 use super::file_ops::{
     make_executable, remove_dir_all_if_exists, remove_file_if_exists, remove_legacy_bash_hook_file,
@@ -33,26 +34,28 @@ use super::opencode_config::{
     validate_tui_plugin_config,
 };
 use super::types::{
-    AntigravityCliInstallPaths, AntigravityCliUninstallResult, ClaudeInstallPaths,
-    ClaudeUninstallResult, CodexInstallPaths, CodexUninstallResult, CopilotInstallPaths,
-    CopilotUninstallResult, CursorInstallPaths, CursorUninstallResult, DevinInstallPaths,
-    DevinUninstallResult, DroidInstallPaths, DroidUninstallResult, GrokInstallPaths,
-    GrokUninstallResult, HermesInstallPaths, HermesUninstallResult, KiloInstallPaths,
-    KiloUninstallResult, KimiInstallPaths, KimiUninstallResult, LettaInstallPaths,
-    LettaUninstallResult, MastracodeInstallPaths, MastracodeUninstallResult, OmpInstallPaths,
-    OmpUninstallResult, OpenCodeInstallPaths, OpenCodeUninstallResult, PiUninstallResult,
-    QodercliInstallPaths, QodercliUninstallResult, QwenInstallPaths, QwenUninstallResult,
+    AntigravityCliInstallPaths, AntigravityCliUninstallResult, BobInstallPaths, BobUninstallResult,
+    ClaudeInstallPaths, ClaudeUninstallResult, CodexInstallPaths, CodexUninstallResult,
+    CopilotInstallPaths, CopilotUninstallResult, CursorInstallPaths, CursorUninstallResult,
+    DevinInstallPaths, DevinUninstallResult, DroidInstallPaths, DroidUninstallResult,
+    GrokInstallPaths, GrokUninstallResult, HermesInstallPaths, HermesUninstallResult,
+    KiloInstallPaths, KiloUninstallResult, KimiInstallPaths, KimiUninstallResult,
+    LettaInstallPaths, LettaUninstallResult, MastracodeInstallPaths, MastracodeUninstallResult,
+    OmpInstallPaths, OmpUninstallResult, OpenCodeInstallPaths, OpenCodeUninstallResult,
+    PiUninstallResult, QodercliInstallPaths, QodercliUninstallResult, QwenInstallPaths,
+    QwenUninstallResult,
 };
 use super::{
     ANTIGRAVITY_CLI_HOOK_ASSET, ANTIGRAVITY_CLI_HOOK_BLOCK_NAME, ANTIGRAVITY_CLI_HOOK_EVENTS,
-    ANTIGRAVITY_CLI_HOOK_INSTALL_NAME, ANTIGRAVITY_CLI_HOOK_TIMEOUT_SEC, CLAUDE_HOOK_ASSET,
-    CLAUDE_HOOK_INSTALL_NAME, CODEX_HOOK_ASSET, CODEX_HOOK_INSTALL_NAME, COPILOT_HOOK_ASSET,
-    COPILOT_HOOK_EVENTS, COPILOT_HOOK_INSTALL_NAME, COPILOT_REMOVED_LIFECYCLE_HOOK_EVENTS,
-    CURSOR_HOOK_ASSET, CURSOR_HOOK_INSTALL_NAME, DEVIN_HOOK_ASSET, DEVIN_HOOK_EVENTS,
-    DEVIN_HOOK_INSTALL_NAME, DEVIN_REMOVED_LIFECYCLE_HOOK_EVENTS, DROID_HOOK_ASSET,
-    DROID_HOOK_EVENTS, DROID_HOOK_INSTALL_NAME, DROID_REMOVED_LIFECYCLE_HOOK_EVENTS,
-    GROK_HOOK_ASSET, GROK_HOOK_CONFIG_INSTALL_NAME, GROK_HOOK_INSTALL_NAME,
-    HERMES_PLUGIN_INIT_ASSET, HERMES_PLUGIN_INIT_INSTALL_NAME, HERMES_PLUGIN_MANIFEST_ASSET,
+    ANTIGRAVITY_CLI_HOOK_INSTALL_NAME, ANTIGRAVITY_CLI_HOOK_TIMEOUT_SEC, BOB_HOOK_ASSET,
+    BOB_HOOK_INSTALL_NAME, CLAUDE_HOOK_ASSET, CLAUDE_HOOK_INSTALL_NAME, CODEX_HOOK_ASSET,
+    CODEX_HOOK_INSTALL_NAME, COPILOT_HOOK_ASSET, COPILOT_HOOK_EVENTS, COPILOT_HOOK_INSTALL_NAME,
+    COPILOT_REMOVED_LIFECYCLE_HOOK_EVENTS, CURSOR_HOOK_ASSET, CURSOR_HOOK_INSTALL_NAME,
+    DEVIN_HOOK_ASSET, DEVIN_HOOK_EVENTS, DEVIN_HOOK_INSTALL_NAME,
+    DEVIN_REMOVED_LIFECYCLE_HOOK_EVENTS, DROID_HOOK_ASSET, DROID_HOOK_EVENTS,
+    DROID_HOOK_INSTALL_NAME, DROID_REMOVED_LIFECYCLE_HOOK_EVENTS, GROK_HOOK_ASSET,
+    GROK_HOOK_CONFIG_INSTALL_NAME, GROK_HOOK_INSTALL_NAME, HERMES_PLUGIN_INIT_ASSET,
+    HERMES_PLUGIN_INIT_INSTALL_NAME, HERMES_PLUGIN_MANIFEST_ASSET,
     HERMES_PLUGIN_MANIFEST_INSTALL_NAME, KILO_PLUGIN_ASSET, KILO_PLUGIN_INSTALL_NAME,
     KIMI_HOOK_ASSET, KIMI_HOOK_INSTALL_NAME, LETTA_HOOK_ASSET, LETTA_HOOK_INSTALL_NAME,
     LETTA_HOOK_TIMEOUT_MS, MASTRACODE_HOOK_ASSET, MASTRACODE_HOOK_EVENTS,
@@ -152,6 +155,41 @@ pub(crate) fn install_claude() -> io::Result<ClaudeInstallPaths> {
     }
 
     Ok(ClaudeInstallPaths {
+        hook_path,
+        settings_path,
+    })
+}
+
+pub(crate) fn install_bob() -> io::Result<BobInstallPaths> {
+    let dir = bob_dir()?;
+    check_config_targets(&dir, &["settings.json"])?;
+    if !dir.is_dir() {
+        return Err(io::Error::other(format!(
+            "bob directory not found at {}. install bob first",
+            dir.display()
+        )));
+    }
+
+    let hooks_dir = dir.join("hooks");
+    fs::create_dir_all(&hooks_dir)?;
+
+    let hook_path = hooks_dir.join(BOB_HOOK_INSTALL_NAME);
+    fs::write(&hook_path, BOB_HOOK_ASSET)?;
+    make_executable(&hook_path)?;
+
+    let settings_path = dir.join("settings.json");
+    let existing_settings = if settings_path.is_file() {
+        fs::read_to_string(&settings_path)?
+    } else {
+        "{}".to_string()
+    };
+    let updated_settings = install_claude_settings(&existing_settings, &settings_path, &hook_path)?;
+
+    if updated_settings != existing_settings {
+        write_config(&settings_path, updated_settings)?;
+    }
+
+    Ok(BobInstallPaths {
         hook_path,
         settings_path,
     })
@@ -593,6 +631,33 @@ pub(crate) fn uninstall_claude() -> io::Result<ClaudeUninstallResult> {
         remove_file_if_exists(&hook_path)? | remove_legacy_bash_hook_file(&hook_path)?;
 
     Ok(ClaudeUninstallResult {
+        hook_path,
+        settings_path,
+        removed_hook_file,
+        updated_settings,
+    })
+}
+
+pub(crate) fn uninstall_bob() -> io::Result<BobUninstallResult> {
+    let dir = bob_dir()?;
+    check_config_targets(&dir, &["settings.json"])?;
+    let hook_path = dir.join("hooks").join(BOB_HOOK_INSTALL_NAME);
+    let settings_path = dir.join("settings.json");
+    let mut updated_settings = false;
+
+    if settings_path.is_file() {
+        let existing_settings = fs::read_to_string(&settings_path)?;
+        let new_settings =
+            uninstall_claude_settings(&existing_settings, &settings_path, &hook_path)?;
+        updated_settings = new_settings != existing_settings;
+        if updated_settings {
+            write_config(&settings_path, new_settings)?;
+        }
+    }
+
+    let removed_hook_file = remove_file_if_exists(&hook_path)?;
+
+    Ok(BobUninstallResult {
         hook_path,
         settings_path,
         removed_hook_file,

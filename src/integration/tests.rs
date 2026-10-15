@@ -132,6 +132,7 @@ fn clear_integration_path_env() {
     std::env::remove_var(PI_CODING_AGENT_DIR_ENV_VAR);
     std::env::remove_var(OMP_CONFIG_DIR_ENV_VAR);
     std::env::remove_var(CLAUDE_CONFIG_DIR_ENV_VAR);
+    std::env::remove_var(BOB_CONFIG_DIR_ENV_VAR);
     std::env::remove_var(CODEX_HOME_ENV_VAR);
     std::env::remove_var(COPILOT_HOME_ENV_VAR);
     std::env::remove_var(KIMI_CODE_HOME_ENV_VAR);
@@ -1402,6 +1403,107 @@ fn install_claude_errors_when_claude_dir_missing() {
     let err = install_claude().unwrap_err().to_string();
 
     assert!(err.contains("claude directory not found"));
+
+    std::env::remove_var("HOME");
+    let _ = fs::remove_dir_all(base);
+}
+
+#[test]
+fn install_bob_writes_session_hook_and_updates_settings() {
+    let _lock = integration_env_lock();
+    let base = unique_base();
+    let home = base.join("home");
+    let bob_dir = home.join(".bob");
+    fs::create_dir_all(&bob_dir).unwrap();
+    fs::write(
+        bob_dir.join("settings.json"),
+        r#"{"permissions":{"allow":["Read"]},"hooks":{}}"#,
+    )
+    .unwrap();
+    clear_integration_path_env();
+    std::env::set_var("HOME", &home);
+
+    let installed = install_bob().unwrap();
+    let hook_content = fs::read_to_string(&installed.hook_path).unwrap();
+    let settings: Value =
+        serde_json::from_str(&fs::read_to_string(&installed.settings_path).unwrap()).unwrap();
+
+    assert_eq!(
+        installed.hook_path,
+        bob_dir.join("hooks").join(BOB_HOOK_INSTALL_NAME)
+    );
+    assert_eq!(hook_content, BOB_HOOK_ASSET);
+    assert!(hook_content.contains("herdr:bob"));
+    assert!(settings["permissions"]["allow"].is_array());
+    assert!(settings["hooks"]["SessionStart"][0]["hooks"][0]["command"]
+        .as_str()
+        .unwrap()
+        .contains(" session"));
+    assert!(settings["hooks"].get("Stop").is_none());
+    assert!(settings["hooks"].get("PreToolUse").is_none());
+
+    std::env::remove_var("HOME");
+    let _ = fs::remove_dir_all(base);
+}
+
+#[test]
+fn install_bob_uses_bob_config_dir_env() {
+    let _lock = integration_env_lock();
+    let base = unique_base();
+    let bob_dir = base.join("custom-bob");
+    fs::create_dir_all(&bob_dir).unwrap();
+    clear_integration_path_env();
+    std::env::set_var(BOB_CONFIG_DIR_ENV_VAR, &bob_dir);
+
+    let installed = install_bob().unwrap();
+
+    assert_eq!(installed.settings_path, bob_dir.join("settings.json"));
+    assert_eq!(
+        installed.hook_path,
+        bob_dir.join("hooks").join(BOB_HOOK_INSTALL_NAME)
+    );
+
+    clear_integration_path_env();
+    let _ = fs::remove_dir_all(base);
+}
+
+#[test]
+fn uninstall_bob_removes_hook_and_settings_entry() {
+    let _lock = integration_env_lock();
+    let base = unique_base();
+    let home = base.join("home");
+    let bob_dir = home.join(".bob");
+    fs::create_dir_all(&bob_dir).unwrap();
+    fs::write(bob_dir.join("settings.json"), "{}").unwrap();
+    clear_integration_path_env();
+    std::env::set_var("HOME", &home);
+
+    let installed = install_bob().unwrap();
+    let result = uninstall_bob().unwrap();
+    let settings: Value =
+        serde_json::from_str(&fs::read_to_string(&installed.settings_path).unwrap()).unwrap();
+
+    assert!(result.removed_hook_file);
+    assert!(result.updated_settings);
+    assert!(!installed.hook_path.exists());
+    assert!(settings["hooks"].get("SessionStart").is_none());
+
+    std::env::remove_var("HOME");
+    let _ = fs::remove_dir_all(base);
+}
+
+#[test]
+fn install_bob_errors_when_bob_dir_missing() {
+    let _lock = integration_env_lock();
+    let base = unique_base();
+    let home = base.join("home");
+    fs::create_dir_all(&home).unwrap();
+    clear_integration_path_env();
+    std::env::set_var("HOME", &home);
+
+    let err = install_bob().unwrap_err().to_string();
+
+    assert!(err.contains("bob directory not found"));
 
     std::env::remove_var("HOME");
     let _ = fs::remove_dir_all(base);

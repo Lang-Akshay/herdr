@@ -494,6 +494,25 @@ pub(crate) fn integration_status_at(
     }
 }
 
+/// Bob follows the same experimental CLI-only path as Letta, for the same
+/// reason: the frozen client endpoint `IntegrationTarget` enum cannot grow.
+pub(crate) fn experimental_bob_integration_status() -> Option<super::ExperimentalIntegrationStatus>
+{
+    let path = bob_dir()
+        .ok()?
+        .join("hooks")
+        .join(super::BOB_HOOK_INSTALL_NAME);
+    let (state, installed_version) =
+        integration_state_for_path(&path, super::BOB_INTEGRATION_VERSION);
+    Some(super::ExperimentalIntegrationStatus {
+        label: "bob",
+        path,
+        state,
+        installed_version,
+        expected_version: super::BOB_INTEGRATION_VERSION,
+    })
+}
+
 /// Letta is intentionally kept out of the frozen client endpoint
 /// `IntegrationTarget` enum so published generation-1 clients never receive an
 /// unknown variant. It is installable and reportable as an experimental
