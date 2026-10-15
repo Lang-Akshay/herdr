@@ -26,3 +26,5 @@ __pycache__/
 
 /.wrangler/
 **/.wrangler/
+# CocoIndex Code (ccc)
+/.cocoindex_code/
