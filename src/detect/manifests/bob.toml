@@ -1,0 +1,56 @@
+id = "bob"
+version = "2026.10.15.1"
+min_engine_version = 2
+updated_at = "2026-10-15T00:00:00Z"
+aliases = ["bobshell"]
+
+[[rules]]
+id = "live_turn_working"
+state = "working"
+priority = 970
+region = "bottom_non_empty_lines(12)"
+visible_working = true
+any = [
+  { line_regex = ['^\s*[\x{2800}-\x{28FF}]\s+(?:Processing|Thinking|Compacting Context|Listing files|Including content)\b'] },
+  { line_regex = ['Processing…\s+\((?:Enter to steer|Enter to queue)'] },
+  { line_regex = ['Processing\.\.\.\s+\((?:Enter to steer|Enter to queue)'] },
+]
+
+[[rules]]
+id = "context_compacting_working"
+state = "working"
+priority = 965
+region = "bottom_non_empty_lines(6)"
+visible_working = true
+contains = ["Compacting Context…"]
+
+[[rules]]
+id = "permission_dialog_blocked"
+state = "blocked"
+priority = 980
+region = "bottom_non_empty_lines(15)"
+visible_blocker = true
+any = [
+  { contains = ["Allow once", "Deny"] },
+  { contains = ["Allow always", "Deny"] },
+  { contains = ["Approve", "Deny"] },
+  { contains = ["Esc to cancel", "Enter to save"] },
+  { contains = ["— Esc to cancel"] },
+]
+
+[[rules]]
+id = "live_prompt_box"
+state = "idle"
+priority = 950
+region = "bottom_non_empty_lines(10)"
+visible_idle = true
+any = [
+  { contains = ["Build Anything, @ for context"] },
+  { line_regex = ['^\s*❯(?:\s|$)'] },
+]
+not = [
+  { contains = ["Processing…"] },
+  { contains = ["Compacting Context…"] },
+  { contains = ["Allow once"] },
+  { contains = ["Allow always"] },
+]

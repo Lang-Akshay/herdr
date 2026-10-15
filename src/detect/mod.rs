@@ -65,10 +65,11 @@ pub enum Agent {
     Letta,
     Maki,
     Muse,
+    Bob,
 }
 
 impl Agent {
-    pub const ALL: [Self; 24] = [
+    pub const ALL: [Self; 25] = [
         Self::Pi,
         Self::Claude,
         Self::Codex,
@@ -93,9 +94,10 @@ impl Agent {
         Self::Letta,
         Self::Maki,
         Self::Muse,
+        Self::Bob,
     ];
 
-    pub const SCREEN_MANIFEST_AGENTS: [Self; 22] = [
+    pub const SCREEN_MANIFEST_AGENTS: [Self; 23] = [
         Self::Pi,
         Self::Claude,
         Self::Codex,
@@ -118,6 +120,7 @@ impl Agent {
         Self::Letta,
         Self::Maki,
         Self::Muse,
+        Self::Bob,
     ];
 }
 
@@ -147,6 +150,7 @@ pub fn agent_label(agent: Agent) -> &'static str {
         Agent::Letta => "letta",
         Agent::Maki => "maki",
         Agent::Muse => "muse",
+        Agent::Bob => "bob",
     }
 }
 
@@ -182,6 +186,7 @@ pub fn interactive_agent_executable(agent: Agent) -> &'static str {
         Agent::Letta => "letta",
         Agent::Maki => "maki",
         Agent::Muse => "muse",
+        Agent::Bob => "bob",
     }
 }
 
@@ -200,6 +205,7 @@ fn lookup_agent(name: &str) -> Option<Agent> {
     match name {
         "pi" => Some(Agent::Pi),
         "claude" | "claude-code" => Some(Agent::Claude),
+        "bob" | "bobshell" => Some(Agent::Bob),
         "codex" => Some(Agent::Codex),
         "gemini" => Some(Agent::Gemini),
         "cursor" | "cursor-agent" => Some(Agent::Cursor),
@@ -345,6 +351,7 @@ pub(crate) fn session_identity_only_integration(source: &str, agent_label: &str)
         ("herdr:hermes", "hermes")
             | ("herdr:qwen", "qwen")
             | ("herdr:letta", "letta")
+            | ("herdr:bob", "bob")
             | ("herdr:antigravity_cli", "agy")
     )
 }
@@ -747,6 +754,9 @@ fn agent_name_from_known_package_path(path: &str) -> Option<String> {
         if window == ["node_modules", "@letta-ai", "letta-code", "letta"] {
             return Some(agent_label(Agent::Letta).to_string());
         }
+        if window == ["node_modules", "bobshell", "dist", "bob"] {
+            return Some(agent_label(Agent::Bob).to_string());
+        }
     }
     None
 }
@@ -1025,6 +1035,8 @@ mod tests {
     fn parse_known_agent_labels() {
         assert_eq!(parse_agent_label("pi"), Some(Agent::Pi));
         assert_eq!(parse_agent_label("claude"), Some(Agent::Claude));
+        assert_eq!(parse_agent_label("bob"), Some(Agent::Bob));
+        assert_eq!(parse_agent_label("bobshell"), Some(Agent::Bob));
         assert_eq!(parse_agent_label("cursor-agent"), Some(Agent::Cursor));
         assert_eq!(parse_agent_label("devin-cli"), Some(Agent::Devin));
         assert_eq!(parse_agent_label("agy"), Some(Agent::Antigravity));
@@ -1092,6 +1104,7 @@ mod tests {
             (Agent::Letta, "letta"),
             (Agent::Maki, "maki"),
             (Agent::Muse, "muse"),
+            (Agent::Bob, "bob"),
         ];
         assert_eq!(expected.len(), Agent::ALL.len());
         for (agent, executable) in expected {
@@ -1720,6 +1733,32 @@ mod tests {
             identify_agent_in_job(&job),
             Some((Agent::Kimi, "kimi".to_string()))
         );
+    }
+
+    #[test]
+    fn identify_agent_in_job_detects_node_wrapped_bob_package_cli() {
+        for argv in [
+            vec!["bob"],
+            vec!["node", "/opt/homebrew/bin/bob"],
+            vec![
+                "node",
+                "/opt/homebrew/lib/node_modules/bobshell/dist/bob.js",
+            ],
+            vec![
+                r"C:\Program Files\nodejs\node.exe",
+                r"C:\Users\herdr\AppData\Roaming\npm\node_modules\bobshell\dist\bob.js",
+            ],
+        ] {
+            let job = crate::platform::ForegroundJob {
+                process_group_id: 123,
+                processes: vec![foreground_process(123, "node", &argv)],
+            };
+
+            assert_eq!(
+                identify_agent_in_job(&job),
+                Some((Agent::Bob, "bob".to_string()))
+            );
+        }
     }
 
     #[test]
