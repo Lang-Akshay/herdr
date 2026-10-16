@@ -1,0 +1,76 @@
+id = "bob"
+version = "2026.10.15.2"
+min_engine_version = 2
+updated_at = "2026-10-15T00:00:00Z"
+aliases = ["bobshell"]
+
+[[rules]]
+id = "live_turn_working"
+state = "working"
+priority = 970
+region = "bottom_non_empty_lines(12)"
+visible_working = true
+any = [
+  { line_regex = ['^\s*[\x{2800}-\x{28FF}]\s+(?:Processing|Thinking|Compacting Context|Listing files|Including content)\b'] },
+  { line_regex = ['Processing…\s+\((?:Enter to steer|Enter to queue)'] },
+  { line_regex = ['Processing\.\.\.\s+\((?:Enter to steer|Enter to queue)'] },
+]
+
+[[rules]]
+id = "context_compacting_working"
+state = "working"
+priority = 965
+region = "bottom_non_empty_lines(6)"
+visible_working = true
+contains = ["Compacting Context…"]
+
+# Primary: match the section after the last ─── rule border.
+# The dialog always ends with "Press Enter to confirm" and shows either
+# "→ Approve Once" (cursor on first item) or "Approve Once" (cursor elsewhere).
+# "Always Allow Command for task" and "Reject" are the other menu items.
+[[rules]]
+id = "permission_dialog_blocked"
+state = "blocked"
+priority = 980
+region = "after_last_horizontal_rule"
+visible_blocker = true
+contains = ["Press Enter to confirm"]
+any = [
+  { contains = ["Approve Once"] },
+  { contains = ["Always Allow Command for task"] },
+  { contains = ["Reject"] },
+]
+
+# Fallback: whole_recent for cases where the horizontal rule border is outside
+# the scanned region. Gate on the invariant "Execute Command" section header
+# and the confirm footer together.
+[[rules]]
+id = "permission_dialog_blocked_fallback"
+state = "blocked"
+priority = 975
+region = "whole_recent"
+visible_blocker = true
+contains = ["Execute Command", "Press Enter to confirm"]
+any = [
+  { contains = ["Approve Once"] },
+  { contains = ["Always Allow Command for task"] },
+  { contains = ["Reject"] },
+]
+
+[[rules]]
+id = "live_prompt_box"
+state = "idle"
+priority = 950
+region = "bottom_non_empty_lines(10)"
+visible_idle = true
+any = [
+  { contains = ["Build Anything, @ for context"] },
+  { line_regex = ['^\s*❯(?:\s|$)'] },
+]
+not = [
+  { contains = ["Processing…"] },
+  { contains = ["Compacting Context…"] },
+  { contains = ["Approve Once"] },
+  { contains = ["Always Allow Command for task"] },
+  { contains = ["Press Enter to confirm"] },
+]
